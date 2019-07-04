@@ -1,15 +1,21 @@
 package com.example.myapplication;
 
 import android.annotation.SuppressLint;
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.ColorFilter;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.os.AsyncTask;
 import android.os.Looper;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.os.Handler;
+import android.text.format.Formatter;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
@@ -28,7 +34,7 @@ import java.util.ArrayList;
  */
 public class FullscreenActivity extends AppCompatActivity {
     private static ImageView songImage;
-    private static EditText ipAdress;
+    private static EditText ipAdressField;
     private static Button connectButton, closeButton;
     private static TextView errorTextView;
     private static ConnectionTask connectionTask;
@@ -53,21 +59,23 @@ public class FullscreenActivity extends AppCompatActivity {
     private View mContentView;
     private View mControlsView;
     private boolean mVisible;
+    private  static Context context;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_fullscreen);
-
+        context = this;
         mVisible = true;
         mControlsView = findViewById(R.id.fullscreen_content_controls);
         mContentView = findViewById(R.id.fullscreen_content);
         songImage = findViewById(R.id.song_image);
-        ipAdress = findViewById(R.id.IP_text);
+        ipAdressField = findViewById(R.id.IP_text);
         connectButton = findViewById(R.id.Connect_btn);
         closeButton = findViewById(R.id.close_btn);
         errorTextView = findViewById(R.id.error_text);
+
 
         // Set up the user interaction to manually show or hide the system UI.
 //        mContentView.setOnClickListener(new View.OnClickListener() {
@@ -81,7 +89,35 @@ public class FullscreenActivity extends AppCompatActivity {
         // operations to prevent the jarring behavior of controls going away
         // while interacting with the UI.
         findViewById(R.id.dummy_button).setOnTouchListener(mDelayHideTouchListener);
+
+        setLocalIp();
     }
+
+    private void setLocalIp(){
+        AsyncTask<Void, Void, Void> getLocalIp = new AsyncTask<Void, Void, Void>() {
+            @Override
+            protected Void doInBackground(Void... voids) {
+                ConnectivityManager cm = (ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);
+                NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+                WifiManager wm = (WifiManager)context.getSystemService(Context.WIFI_SERVICE);
+
+                WifiInfo connectionInfo = wm.getConnectionInfo();
+                int ipAddress = connectionInfo.getIpAddress();
+                String myIp = Formatter.formatIpAddress(ipAddress);
+                final String finalMyIp = new String(myIp);
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        ipAdressField.setText(finalMyIp);
+                    }
+                });
+                return null;
+            }
+        };
+        getLocalIp.execute();
+        return;
+    }
+
 
     @Override
     protected void onPostCreate(Bundle savedInstanceState) {
@@ -205,7 +241,7 @@ public class FullscreenActivity extends AppCompatActivity {
         Handler handler = new Handler(Looper.getMainLooper());
         handler.post(new Runnable() {
             public void run() {
-                ipAdress.setVisibility(intVisibility);
+                ipAdressField.setVisibility(intVisibility);
                 connectButton.setVisibility(intVisibility);
                 closeButton.setVisibility(intNotVisibility);
             }
@@ -220,7 +256,7 @@ public class FullscreenActivity extends AppCompatActivity {
     public void connectToServer()
     {
         try{
-            String ipAddress = ipAdress.getText().toString();
+            String ipAddress = ipAdressField.getText().toString();
             ArrayList<String> params = new ArrayList<>();
             params.add(ipAddress);
             connectionTask = new ConnectionTask(this);
@@ -230,7 +266,7 @@ public class FullscreenActivity extends AppCompatActivity {
 
     public void stopConnect(final View v)
     {
-        connectionTask.closeSocket();
+            connectionTask.closeSocket();
     }
 
     public void setBlackImage()
@@ -245,6 +281,16 @@ public class FullscreenActivity extends AppCompatActivity {
         });
     }
 
+    public void setDebugMessage(final String msg)
+    {
+        Handler handler = new Handler(Looper.getMainLooper());
+        handler.post(new Runnable() {
+            public void run() {
+                errorTextView.setText("MS: "+msg);
+            }
+        });
+    }
+
     public void setImage(int[] colors, final int width, final int height)
     {
         final Bitmap btm = Bitmap.createBitmap(colors, width, height, Bitmap.Config.ARGB_8888);
@@ -252,7 +298,6 @@ public class FullscreenActivity extends AppCompatActivity {
         handler.post(new Runnable() {
             public void run() {
                 songImage.setImageBitmap(btm);
-                errorTextView.setText("MS: width:"+ width+" height:"+height);
             }
         });
     }

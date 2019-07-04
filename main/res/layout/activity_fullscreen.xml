@@ -58,8 +58,9 @@
         android:id="@+id/error_text"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginLeft="25dp"
         android:text="MS:"
-        android:textColor="@color/black_overlay"
+        android:textColor="@android:color/holo_green_light"
         android:visibility="visible" />
 
     <Button
@@ -83,7 +84,6 @@
             android:ems="10"
             android:hint="IP-Adress"
             android:inputType="textPersonName"
-            android:text="192.168.43.188"
             android:textColor="@android:color/white"
             android:textColorHint="@android:color/darker_gray" />
 
